@@ -1,0 +1,46 @@
+model = models.Sequential([
+    layers.Conv2D(filters=32, kernel_size=(3,3), activation='relu', input_shape=(IMG_HEIGHT,IMG_WIDTH,channels)),
+    layers.BatchNormalization(),
+    layers.Conv2D(filters=32, kernel_size=(3,3), activation='relu'),
+    layers.BatchNormalization(),
+    layers.MaxPool2D(pool_size=(2, 2)),
+    layers.Dropout(0.25),
+    
+    layers.Conv2D(filters=64, kernel_size=(3,3), activation='relu'),
+    layers.BatchNormalization(),
+    layers.Conv2D(filters=64, kernel_size=(3,3), activation='relu'),
+    layers.BatchNormalization(),
+    layers.MaxPool2D(pool_size=(2, 2)),
+    layers.Dropout(0.25),
+    
+    layers.Flatten(),
+    layers.Dense(512, activation='relu', kernel_regularizer=regularizers.l2(0.01)),
+    layers.BatchNormalization(),
+    layers.Dropout(0.5),
+    
+    layers.Dense(43, activation='softmax')
+])
+
+# Define the optimizer and compile the model
+lr = 0.001
+epochs = 40
+opt = optimizers.Adam(lr=lr, decay=lr/epochs)
+model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+
+# Define the learning rate scheduler
+lr_scheduler = ReduceLROnPlateau(factor=0.5, patience=3, verbose=1)
+
+# Define the data augmentation generator
+aug = ImageDataGenerator(
+    rotation_range=15,
+    zoom_range=0.2,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.2,
+    horizontal_flip=True,
+    vertical_flip=False,
+    fill_mode="nearest")
+
+# Train the model with data augmentation and the learning rate scheduler
+history = model.fit(aug.flow(X_train, y_train, batch_size=32), epochs=epochs, 
+                    validation_data=(X_val, y_val), callbacks=[lr_scheduler])
